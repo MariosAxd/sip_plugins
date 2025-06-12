@@ -74,7 +74,10 @@ def httpResquestJSON(commandURL):
         # catastrophic error. bail.
         #raise SystemExit(e)
         resposeIsOk = 3
-        print("Fatal error")
+        print("Fatal error invoking URL:" + commandURL)
+
+    if response is not None:
+        print("Response: URL=", commandURL, ", OK = ", resposeIsOk, ", Response =", response)
 
     return resposeIsOk, response
 
@@ -92,44 +95,66 @@ def generateVarFunctionsNet(idx):
             userData = ""
 
     shellyChannel = "0"
+    shellyDeviceType = "shelly1"
     if commandsAdv[u"deviceModel"][idx] == "shelly2_2":
         shellyChannel = "1"
+    if commandsAdv[u"deviceModel"][idx] == "shellyX_1":
+        shellyChannel = "0"
+        shellyDeviceType = "shellyX"
+    if commandsAdv[u"deviceModel"][idx] == "shellyX_2":
+        shellyChannel = "1"
+        shellyDeviceType = "shellyX"
+    if commandsAdv[u"deviceModel"][idx] == "shellyX_3":
+        shellyChannel = "2"
+        shellyDeviceType = "shellyX"
+    if commandsAdv[u"deviceModel"][idx] == "shellyX_4":
+        shellyChannel = "3"
+        shellyDeviceType = "shellyX"
 
-    return port2Use, userData, shellyChannel
+    return port2Use, userData, shellyChannel, shellyDeviceType
 
 def generateONFunctionNet(idx):
     # Turn on net device
 
-    port2Use, userData, shellyChannel = generateVarFunctionsNet(idx)
+    port2Use, userData, shellyChannel, shellyDeviceType = generateVarFunctionsNet(idx)
 
     if commandsAdv[u"typeOutput"][idx] == "shellyHTTP":
         turnOnURL = commandsAdv[u"deviceProtocol"][idx] + u"://" + userData + commandsAdv[u"deviceIP"][idx] + u"/relay/" + shellyChannel + u"?turn=on"
+        if shellyDeviceType == "shellyX":
+            turnOnURL = commandsAdv[u"deviceProtocol"][idx] + u"://" + userData + commandsAdv[u"deviceIP"][idx] + u"/rpc/Switch.Set?id=" + shellyChannel + u"&on=true"
     else:
         turnOnURL = commandsAdv[u"deviceProtocol"][idx] + u"://" + commandsAdv[u"deviceIP"][idx] + u":" + port2Use + u"/zeroconf/switch"
 
+    # print ("Turn on URL: ", turnOnURL)
     return turnOnURL
 
 def generateOFFFunctionNet(idx):
     # Turn off net device
 
-    port2Use, userData, shellyChannel = generateVarFunctionsNet(idx)
+    port2Use, userData, shellyChannel, shellyDeviceType = generateVarFunctionsNet(idx)
 
     if commandsAdv[u"typeOutput"][idx] == "shellyHTTP":
         turnOffURL = commandsAdv[u"deviceProtocol"][idx] + u"://" + userData + commandsAdv[u"deviceIP"][idx] + u"/relay/" + shellyChannel + u"?turn=off"
+        if shellyDeviceType == "shellyX":
+            turnOffURL = commandsAdv[u"deviceProtocol"][idx] + u"://" + userData + commandsAdv[u"deviceIP"][idx] + u"/rpc/Switch.Set?id=" + shellyChannel + u"&on=false"
     else:
         turnOffURL = commandsAdv[u"deviceProtocol"][idx] + u"://" + commandsAdv[u"deviceIP"][idx] + u":" + port2Use + u"/zeroconf/switch"
 
+    # print ("Turn off URL: ", turnOffURL)
     return turnOffURL
 
 def generateStatusFunctionNet(idx):
     # device status
 
-    port2Use, userData, shellyChannel = generateVarFunctionsNet(idx)
+    port2Use, userData, shellyChannel, shellyDeviceType = generateVarFunctionsNet(idx)
     if commandsAdv[u"typeOutput"][idx] == "shellyHTTP":
         statusURL = commandsAdv[u"deviceProtocol"][idx] + u"://" + userData + commandsAdv[u"deviceIP"][idx] + u":" + port2Use + u"/status"
+        if shellyDeviceType == "shellyX":
+            statusURL = commandsAdv[u"deviceProtocol"][idx] + u"://" + userData + commandsAdv[u"deviceIP"][idx] + u":" + port2Use + u"/rpc/Switch.GetStatus?id=" + shellyChannel
     else:
         statusURL = commandsAdv[u"deviceProtocol"][idx] + u"://" + commandsAdv[u"deviceIP"][idx] + u":" + port2Use + u"/zeroconf/info"
 
+    # print ("Status URL: ", statusURL)
     return statusURL
 
 ################################################################################
@@ -149,7 +174,7 @@ def run_check_valves_on_line_keep_state():
                 turnOffURL = generateOFFFunctionNet(i)
                 turnOnURL = generateONFunctionNet(i)
 
-                port2Use, userData, shellyChannel = generateVarFunctionsNet(i)
+                port2Use, userData, shellyChannel, shellyDeviceType = generateVarFunctionsNet(i)
 
                 devicesAccessProtection[i].acquire()
                 resposeIsOk, response = httpResquestJSON(statusURL)
@@ -161,7 +186,10 @@ def run_check_valves_on_line_keep_state():
                 if resposeIsOk == 0 and commandsAdv[u"useLatch"][i] == 0 and commandsAdv[u"deviceKeepState"][i] == 1:
                     try:
                         if commandsAdv[u"typeOutput"][i] == "shellyHTTP":
-                            newState = bool(response['relays'][int(shellyChannel)]['ison'])
+                            if shellyDeviceType == "shellyX":
+                                newState = bool(response['output'])
+                            else:
+                                newState = bool(response['relays'][int(shellyChannel)]['ison'])
                         else:
                             newState = response['data']['switch'] == 'on'
 
@@ -253,7 +281,7 @@ def on_zone_change(name, **kw):
                     turnOffURL = generateOFFFunctionNet(i)
                     turnOnURL = generateONFunctionNet(i)
 
-                    port2Use, userData, shellyChannel = generateVarFunctionsNet(i)
+                    port2Use, userData, shellyChannel, shellyDeviceType = generateVarFunctionsNet(i)
 
                     #start to lock device to avoid same http requets
                     devicesAccessProtection[i].acquire()
@@ -265,7 +293,10 @@ def on_zone_change(name, **kw):
 
                         try:
                             if commandsAdv[u"typeOutput"][i] == "shellyHTTP":
-                                lastState = bool(response['relays'][int(shellyChannel)]['ison'])
+                                if shellyDeviceType == "shellyX":
+                                    lastState = bool(response['output'])
+                                else:
+                                    lastState = bool(response['relays'][int(shellyChannel)]['ison'])
                             else:
                                 lastState = response['data']['switch'] == 'on'
                         except NameError:
@@ -273,7 +304,7 @@ def on_zone_change(name, **kw):
                             resposeIsOk = 4
 
                         if gv.srvals[i] and not lastState:  # station is off and new state must be on
-                            print("Station ned to be on but it is turn of")
+                            print("Station need to be on but it is turned off")
                             resposeIsOkOn, response = httpResquestJSON(turnOnURL)
                             if resposeIsOkOn == 0:
                                 resposeIsOk, response = httpResquestJSON(statusURL)
@@ -281,7 +312,10 @@ def on_zone_change(name, **kw):
                                 if resposeIsOk == 0:
                                     try:
                                         if commandsAdv[u"typeOutput"][i] == "shellyHTTP":
-                                            newState = bool(response['relays'][int(shellyChannel)]['ison'])
+                                            if shellyDeviceType == "shellyX":
+                                                newState = bool(response['output'])
+                                            else:
+                                                newState = bool(response['relays'][int(shellyChannel)]['ison'])
                                         else:
                                             newState = response['data']['switch'] == 'on'
                                     except NameError:
@@ -294,17 +328,20 @@ def on_zone_change(name, **kw):
                                         resposeIsOk = 6
                                         print("Fail to turn on")
                             else:
-                                print("Unable to turn off")
-                        elif not gv.srvals[i] and lastState: #station is turn on but must turn off
-                            print("Station ned to be off but it is turn on")
+                                print("Unable to turn on")
+                        elif not gv.srvals[i] and lastState: #station is turned on but must turn off
+                            print("Station need to be off but it is turn on")
                             resposeIsOkOn, response = httpResquestJSON(turnOffURL)
-                            if resposeIsOkOn:
+                            if resposeIsOkOn == 0:
                                 resposeIsOk, response = httpResquestJSON(statusURL)
 
                                 if resposeIsOk == 0:
                                     try:
                                         if commandsAdv[u"typeOutput"][i] == "shellyHTTP":
-                                            newState = bool(response['relays'][0]['ison'])
+                                            if shellyDeviceType == "shellyX":
+                                                newState = bool(response['output'])
+                                            else:
+                                                newState = bool(response['relays'][int(shellyChannel)]['ison'])
                                         else:
                                             newState = response['data']['switch'] == 'on'
                                     except NameError:
@@ -328,7 +365,7 @@ def on_zone_change(name, **kw):
                         if resposeIsOkOn == 0:
                             resposeIsOkOff, response = httpResquestJSON(turnOffURL)
                             if resposeIsOkOff:
-                                print("Latch sucess")
+                                print("Latch success")
 
                     devicesAccessProtection[i].release()
 
@@ -534,7 +571,7 @@ class valve_latch_send_signal(ProtectedPage):
                     turnOffURL = generateOFFFunctionNet(valveId)
                     turnOnURL = generateONFunctionNet(valveId)
 
-                    port2Use, userData, shellyChannel = generateVarFunctionsNet(valveId)
+                    port2Use, userData, shellyChannel, shellyDeviceType = generateVarFunctionsNet(valveId)
 
                     devicesAccessProtection[valveId].acquire()
 
@@ -547,7 +584,10 @@ class valve_latch_send_signal(ProtectedPage):
 
                     try:
                         if commandsAdv[u"typeOutput"][valveId] == "shellyHTTP":
-                            lastState = bool(response['relays'][int(shellyChannel)]['ison'])
+                            if shellyDeviceType == "shellyX":
+                                lastState = bool(response['output'])
+                            else:
+                                lastState = bool(response['relays'][int(shellyChannel)]['ison'])
                         else:
                             lastState = response['data']['switch'] == 'on'
                     except NameError:

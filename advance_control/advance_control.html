@@ -90,14 +90,14 @@ $var page: advance_control
                         <option value="comandLine">Command Line</option>
 
                     $if commandsAdv[u"typeOutput"][sid] == 'shellyHTTP':
-                        <option selected="checked" value="shellyHTTP">Shelly Divices</option>
+                        <option selected="checked" value="shellyHTTP">Shelly Devices</option>
                     $else:
-                        <option value="shellyHTTP">Shelly Divices</option>
+                        <option value="shellyHTTP">Shelly Devices</option>
 
                     $if commandsAdv[u"typeOutput"][sid] == 'sonOff':
-                        <option selected="checked" value="sonOff">Soon Of Divice</option>
+                        <option selected="checked" value="sonOff">Sonoff Device</option>
                     $else:
-                        <option value="sonOff">Soon Of Divice</option>
+                        <option value="sonOff">Sonoff Device</option>
                     </select>
 
                     <br />
@@ -127,7 +127,10 @@ $var page: advance_control
                             <option value="shelly1" ${'selected="selected"' if commandsAdv[u"deviceModel"][sid] == 'shelly1' else "" }">Shelly 1 - Channel 1</option>
                             <option value="shelly2_1" ${'selected="selected"' if commandsAdv[u"deviceModel"][sid] == 'shelly2_1' else "" }">Shelly 2 - Channel 1</option>
                             <option value="shelly2_2" ${'selected="selected"' if commandsAdv[u"deviceModel"][sid] == 'shelly2_2' else "" }">Shelly 2 - Channel 2</option>
-                            <option value="shelly1Pro" ${'selected="selected"' if commandsAdv[u"deviceModel"][sid] == 'shelly1Pro' else "" }">Shelly 1 Pro - Not supported</option>
+                            <option value="shellyX_1" ${'selected="selected"' if commandsAdv[u"deviceModel"][sid] == 'shellyX_1' else "" }">Shelly X - Channel 1</option>
+                            <option value="shellyX_2" ${'selected="selected"' if commandsAdv[u"deviceModel"][sid] == 'shellyX_2' else "" }">Shelly X - Channel 2</option>
+                            <option value="shellyX_3" ${'selected="selected"' if commandsAdv[u"deviceModel"][sid] == 'shellyX_3' else "" }">Shelly X - Channel 3</option>
+                            <option value="shellyX_4" ${'selected="selected"' if commandsAdv[u"deviceModel"][sid] == 'shellyX_4' else "" }">Shelly X - Channel 4</option>
                         </select>
 
                         <br />
